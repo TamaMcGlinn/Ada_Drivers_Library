@@ -41,13 +41,48 @@ use MicroBit;
 
 procedure Main is
 
+   package Symbols renames MicroBit.Display.Symbols;
+
    Data : MMA8653.All_Axes_Data;
 
-   Threshold : constant := 150;
+   Threshold : constant := 18000;
+
+   type Polar_Magnitude_Type is range 0 .. (2 ** 19);
+
+   type Polar_Type is record
+      Direction : Symbols.Direction_Type;
+      Magnitude : Polar_Magnitude_Type;
+   end record;
+
+   function ConvertToPolarNotation(X : Axis_Data; Y : Axis_Data) return Polar_Type is
+      absX : constant Axis_Data'Base := (if X < 0 then -X else X);
+      absY : constant Axis_Data'Base := (if Y < 0 then -Y else Y);
+      SquaredSum : constant Polar_Magnitude_Type := Polar_Magnitude_Type(absX) ** 2 + 
+                                                    Polar_Magnitude_Type(absY) ** 2;
+      ClosestDirection : Symbols.Direction_Type;
+   begin
+      if X / 2 > absY then
+         ClosestDirection := Symbols.Left;
+      elsif X / 2 < -absY then
+         ClosestDirection := Symbols.Right;
+      elsif Y / 2 > absX then
+         ClosestDirection := Symbols.Top;
+      elsif Y / 2 < -absX then
+         ClosestDirection := Symbols.Bottom;
+      elsif X > 0 and then Y > 0 then
+         ClosestDirection := Symbols.Top_Left;
+      elsif X > 0 and then Y < 0 then
+         ClosestDirection := Symbols.Bottom_Left;
+      elsif X < 0 and then Y > 0 then
+         ClosestDirection := Symbols.Top_Right;
+      elsif X < 0 and then Y < 0 then
+         ClosestDirection := Symbols.Bottom_Right;
+      end if;
+      return (Direction => ClosestDirection, Magnitude => SquaredSum);
+   end ConvertToPolarNotation;
 begin
 
    loop
-
       --  Read the accelerometer data
       Data := Accelerometer.Data;
 
@@ -55,28 +90,20 @@ begin
       Console.Put_Line ("X:" & Data.X'Img & ASCII.HT &
                         "Y:" & Data.Y'Img & ASCII.HT &
                         "Z:" & Data.Z'Img);
-
       --  Clear the LED matrix
       Display.Clear;
 
       --  Draw a symbol on the LED matrix depending on the orientation of the
       --  micro:bit.
-      if Data.X > Threshold then
-         Display.Symbols.Left_Arrow;
-
-      elsif Data.X < -Threshold then
-         Display.Symbols.Right_Arrow;
-
-      elsif Data.Y > Threshold then
-         Display.Symbols.Up_Arrow;
-
-      elsif Data.Y < -Threshold then
-         Display.Symbols.Down_Arrow;
-
-      else
-         Display.Display ('X');
-
-      end if;
+      declare
+         Polar : constant Polar_Type := ConvertToPolarNotation(X => Data.X, Y => Data.Y);
+      begin
+         if Polar.Magnitude > Threshold then
+            Display.Display (Display.Symbols.Arrows(Polar.Direction));
+         else
+            Display.Display ('X');
+         end if;
+      end;
 
       --  Do nothing for 100 milliseconds
       Time.Sleep (100);

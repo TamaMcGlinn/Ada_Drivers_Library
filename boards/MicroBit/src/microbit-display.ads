@@ -29,15 +29,22 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with HAL;
+
 package MicroBit.Display is
 
    subtype Coord is Natural range 0 .. 4;
+
+   type Glyph is array (0 .. 4) of HAL.UInt5;
 
    procedure Set (X, Y : Coord);
    --  Set one pixel
 
    procedure Clear (X, Y : Coord);
    --  Clear one pixel
+
+   procedure Display (Bmp : Glyph);
+   --  Set all 25 pixels
 
    procedure Clear;
    --  Clear all the pixels

@@ -106,8 +106,6 @@ package body MicroBit.Display is
    ----------
    -- Font --
    ----------
-
-   type Glyph is array (0 .. 4) of UInt5;
    Font : constant array (0 .. 93) of Glyph :=
      ((2#00100#, -- !
        2#00100#,
@@ -602,7 +600,7 @@ package body MicroBit.Display is
 
       for X in Coord loop
          for Y in Coord loop
-            if X_Org + X in Width then
+            if X_Org + X in Width then -- note this is silly; after this turns false it makes no sense to check it for even higher values
                if (Font (C_Index) (Y) and 2**X) /= 0 then
                   Bitmap (X_Org + X, Y) := True;
                end if;
@@ -729,6 +727,18 @@ package body MicroBit.Display is
    begin
       Bitmap (X, Y) := False;
    end Clear;
+
+   -------------
+   -- Display --
+   -------------
+   procedure Display (Bmp : Glyph) is
+   begin
+      for X in Coord loop
+         for Y in Coord loop
+            Bitmap (X, Y) := ((Bmp (Y) and 2**X) /= 0);
+         end loop;
+      end loop;
+   end Display;
 
    -----------
    -- Clear --
